@@ -24,3 +24,12 @@ proguard/
 
 # Log Files
 *.log
+
+.gradle
+build/
+
+# Ignore Gradle GUI config
+gradle-app.setting
+
+.idea/
+*.iml
