@@ -7,17 +7,41 @@ import android.media.AudioTrack;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 
 
 public class MyActivity extends Activity {
     private Thread t;
+    private Thread recorderThread;
     int sr = 44100;
     boolean isRunning = true;
+    TextView tv;
+    double amplitude = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
+
+        tv = (TextView)findViewById(R.id.temperature);
+        recorderThread = new Thread() {
+            public void run() {
+                SoundMeter soundMeter = new SoundMeter();
+                soundMeter.start();
+                while (isRunning) {
+                    amplitude = soundMeter.getMaxAmplitude();
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            tv.setText(String.valueOf(amplitude));
+                        }
+                    });
+                }
+                soundMeter.stop();
+            }
+        };
+        recorderThread.start();
+
 
         t = new Thread() {
             public void run() {
