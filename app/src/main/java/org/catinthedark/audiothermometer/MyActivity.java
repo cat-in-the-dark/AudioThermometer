@@ -1,6 +1,7 @@
 package org.catinthedark.audiothermometer;
 
 import android.app.Activity;
+import android.content.Context;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -13,7 +14,10 @@ import android.widget.TextView;
 public class MyActivity extends Activity {
     private Thread t;
     private Thread recorderThread;
-    int sr = 44100;
+    final int sr = 44100;
+    final double fr = 4000;
+    int amp = 10000;
+
     boolean isRunning = true;
     TextView tv;
     double amplitude = 0;
@@ -22,6 +26,9 @@ public class MyActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
+
+        AudioManager manager = (AudioManager)this.getSystemService(Context.AUDIO_SERVICE);
+        manager.setStreamVolume(AudioManager.STREAM_MUSIC, manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
 
         tv = (TextView)findViewById(R.id.temperature);
         recorderThread = new Thread() {
@@ -57,9 +64,8 @@ public class MyActivity extends Activity {
                         AudioTrack.MODE_STREAM);
 
                 short samples[] = new short[buffsize];
-                int amp = 10000;
                 double twopi = 8.*Math.atan(1.);
-                double fr = 440.f;
+
                 double phl = 0.0;
                 double phr = 0.0;
 
@@ -68,7 +74,6 @@ public class MyActivity extends Activity {
 
                 // synthesis loop
                 while(isRunning){
-                    fr =  1000;
                     for(int i=0; i < buffsize; i++){
                         if (i%2 == 0) {
                             samples[i] = (short) (amp*Math.sin(phl));
