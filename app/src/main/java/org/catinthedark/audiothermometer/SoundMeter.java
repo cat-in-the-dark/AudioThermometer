@@ -32,20 +32,17 @@ public class SoundMeter {
         recorder.release();
     }
 
-    public long getMaxAmplitude() {
+    public short[] getBuffer() {
         short[] buffer = new short[minSize];
         recorder.read(buffer, 0, minSize);
-        long max = 0;
-        for (short s : buffer) {
-            max += Math.abs(s);
-        }
-
-        return max / minSize;
+        return buffer;
     }
 
-    public long getAmplitude() {
-        short[] buffer = new short[minSize];
-        recorder.read(buffer, 0, minSize);
+    public long getAmplitude(short[] buffer) {
+        if (buffer.length != minSize) {
+            throw new RuntimeException("Wrong buffer size");
+        }
+
         double[] spectrum = new double[minSize];
         for (int i = 0; i < minSize; ++i) {
             spectrum[i] = (double) buffer[i];
