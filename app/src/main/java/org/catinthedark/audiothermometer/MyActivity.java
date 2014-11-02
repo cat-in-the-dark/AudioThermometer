@@ -12,8 +12,6 @@ import android.widget.TextView;
 
 
 public class MyActivity extends Activity {
-    private Thread t;
-    private Thread recorderThread;
     final int sr = 44100;
     final double fr = 4000;
     int amp = 10000;
@@ -31,12 +29,12 @@ public class MyActivity extends Activity {
         manager.setStreamVolume(AudioManager.STREAM_MUSIC, manager.getStreamMaxVolume(AudioManager.STREAM_MUSIC), 0);
 
         tv = (TextView)findViewById(R.id.temperature);
-        recorderThread = new Thread() {
+        Thread recorderThread = new Thread() {
             public void run() {
                 SoundMeter soundMeter = new SoundMeter();
                 soundMeter.start();
                 while (isRunning) {
-                    amplitude = soundMeter.getMaxAmplitude();
+                    amplitude = soundMeter.getAmplitude();
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -50,7 +48,7 @@ public class MyActivity extends Activity {
         recorderThread.start();
 
 
-        t = new Thread() {
+        Thread t = new Thread() {
             public void run() {
                 // set process priority
                 setPriority(Thread.MAX_PRIORITY);
@@ -64,7 +62,7 @@ public class MyActivity extends Activity {
                         AudioTrack.MODE_STREAM);
 
                 short samples[] = new short[buffsize];
-                double twopi = 8.*Math.atan(1.);
+                double twopi = 8. * Math.atan(1.);
 
                 double phl = 0.0;
                 double phr = 0.0;
@@ -73,14 +71,14 @@ public class MyActivity extends Activity {
                 audioTrack.play();
 
                 // synthesis loop
-                while(isRunning){
-                    for(int i=0; i < buffsize; i++){
-                        if (i%2 == 0) {
-                            samples[i] = (short) (amp*Math.sin(phl));
-                            phl += twopi*fr/sr;
+                while (isRunning) {
+                    for (int i = 0; i < buffsize; i++) {
+                        if (i % 2 == 0) {
+                            samples[i] = (short) (amp * Math.sin(phl));
+                            phl += twopi * fr / sr;
                         } else {
-                            samples[i] = (short) (-amp*Math.sin(phr));
-                            phr += twopi*fr/sr;
+                            samples[i] = (short) (-amp * Math.sin(phr));
+                            phr += twopi * fr / sr;
                         }
                     }
                     audioTrack.write(samples, 0, buffsize);
