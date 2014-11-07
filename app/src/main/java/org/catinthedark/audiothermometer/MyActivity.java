@@ -13,10 +13,6 @@ import android.widget.TextView;
 
 
 public class MyActivity extends Activity {
-    private static final int SAMPLING_RATE = 44100;
-    final double fr = 4000;
-    int amp = 10000;
-
     TextView tv;
     double amplitude = 0;
 
@@ -131,16 +127,15 @@ public class MyActivity extends Activity {
             // set process priority
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
             // set the buffer size
-            int buffsize = AudioTrack.getMinBufferSize(SAMPLING_RATE,
+            int buffsize = AudioTrack.getMinBufferSize(Constants.SAMPLING_RATE,
                     AudioFormat.CHANNEL_OUT_STEREO, AudioFormat.ENCODING_PCM_16BIT);
             // create an audiotrack object
             AudioTrack audioTrack = new AudioTrack(AudioManager.STREAM_MUSIC,
-                    SAMPLING_RATE, AudioFormat.CHANNEL_OUT_STEREO,
+                    Constants.SAMPLING_RATE, AudioFormat.CHANNEL_OUT_STEREO,
                     AudioFormat.ENCODING_PCM_16BIT, buffsize,
                     AudioTrack.MODE_STREAM);
 
             short samples[] = new short[buffsize];
-            double twopi = 8. * Math.atan(1.);
 
             double phl = 0.0;
             double phr = 0.0;
@@ -152,11 +147,11 @@ public class MyActivity extends Activity {
             while (shouldContinue()) {
                 for (int i = 0; i < buffsize; i++) {
                     if (i % 2 == 0) {
-                        samples[i] = (short) (amp * Math.sin(phl));
-                        phl += twopi * fr / SAMPLING_RATE;
+                        samples[i] = (short) (Constants.AMPLITUDE * Math.sin(phl));
+                        phl += Constants.TWO_PI * Constants.FREQUENCY / Constants.SAMPLING_RATE;
                     } else {
-                        samples[i] = (short) (-amp * Math.sin(phr));
-                        phr += twopi * fr / SAMPLING_RATE;
+                        samples[i] = (short) (-Constants.AMPLITUDE * Math.sin(phr));
+                        phr += Constants.TWO_PI * Constants.FREQUENCY / Constants.SAMPLING_RATE;
                     }
                 }
                 audioTrack.write(samples, 0, buffsize);

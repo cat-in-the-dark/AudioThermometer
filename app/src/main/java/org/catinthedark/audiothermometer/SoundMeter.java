@@ -13,13 +13,12 @@ import org.jtransforms.fft.DoubleFFT_1D;
 public class SoundMeter {
     private int minSize;
     private AudioRecord recorder;
-    int sampleRate = 44100;
     private final DoubleFFT_1D fft;
 
     public SoundMeter() {
-        minSize = AudioRecord.getMinBufferSize(sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
+        minSize = AudioRecord.getMinBufferSize(Constants.SAMPLING_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT);
         fft = new DoubleFFT_1D(minSize);
-        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, sampleRate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minSize);
+        recorder = new AudioRecord(MediaRecorder.AudioSource.MIC, Constants.SAMPLING_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, minSize);
         Log.d("SoundMeter", String.valueOf(minSize));
     }
 
@@ -60,7 +59,7 @@ public class SoundMeter {
             }
         }
 
-        long freq = peakIndex * sampleRate / minSize;
+        long freq = peakIndex * Constants.SAMPLING_RATE / minSize;
         if (freq < 3900 || freq > 4100) {
             Log.d("Thermometer", "Unstable temperature. Increase Volume");
             return 0;
