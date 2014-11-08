@@ -16,6 +16,7 @@
     <TextView
         android:id="@+id/temperature"
         android:text="@string/hello_world"
+        android:fontFamily="monospace"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:autoText="false"

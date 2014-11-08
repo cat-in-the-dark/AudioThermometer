@@ -4,6 +4,7 @@ import android.media.AudioFormat;
 import android.media.AudioRecord;
 import android.media.MediaRecorder;
 import android.util.Log;
+import android.util.Pair;
 
 import org.jtransforms.fft.DoubleFFT_1D;
 
@@ -37,7 +38,7 @@ public class SoundMeter {
         return buffer;
     }
 
-    public long getAmplitude(short[] buffer) {
+    public Pair<Long, Long> getPeakHarmonic(short[] buffer) {
         if (buffer.length != minSize) {
             throw new RuntimeException("Wrong buffer size");
         }
@@ -60,11 +61,16 @@ public class SoundMeter {
         }
 
         long freq = peakIndex * Constants.SAMPLING_RATE / minSize;
-        if (freq < 3900 || freq > 4100) {
-            Log.d("Thermometer", "Unstable temperature. Increase Volume");
-            return 0;
-        }
+        return new Pair<Long, Long>(freq, (long)peakMagnitude);
+    }
 
-        return (long)peakMagnitude;
+    public static boolean isSignal(Pair<Long, Long> peakHarmonic) {
+        return (peakHarmonic.first > Constants.SIGNAL_FREQ_MIN
+                && peakHarmonic.first < Constants.SIGNAL_FREQ_MAX);
+    }
+
+    public static boolean isSynchro(Pair<Long, Long> peakHarmonic) {
+        return peakHarmonic.first > Constants.SYNCHRO_FREQ_MIN
+                && peakHarmonic.first < Constants.SYNCHRO_FREQ_MAX;
     }
 }

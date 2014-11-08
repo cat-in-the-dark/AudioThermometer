@@ -7,6 +7,8 @@ import android.media.AudioManager;
 import android.media.AudioTrack;
 import android.os.*;
 import android.os.Process;
+import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
@@ -14,13 +16,24 @@ import android.widget.TextView;
 
 public class MyActivity extends Activity {
     TextView tv;
-    double amplitude = 0;
+    Pair<Long, Long> peakHarmonic = new Pair<Long, Long>(0l, 0l);
 
     private WaveformView mWaveformView;
     private short[] buffer;
 
     private RecordingThread recordingThread;
     private PlayingThread playingThread;
+    private String TAG = "AudioThermometer";
+
+    private synchronized boolean shouldSendSynchro() {
+        return sendSynchro;
+    }
+
+    private synchronized void setSendSynchro(boolean shouldSendSynchro) {
+        this.sendSynchro = shouldSendSynchro;
+    }
+
+    private boolean sendSynchro = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,20 +99,99 @@ public class MyActivity extends Activity {
         public void run() {
             Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO);
 
+            /**
+             * Shows that there was interference in last received signal
+             * (neither signal nor synchroimpulse)
+             * This may happen when one part of data is signal
+             * and another part of data is synchroimpulse
+             * or whole data is piece of sh^Winterference.
+             */
+            boolean wasInterference = false;
+
+            /**
+             * Shows if received data should contain signal with
+             * volume level different from last received signal
+             */
+            boolean volumeShouldChange = true;
+
+            /**
+             * Shows if we increased amplitude of signal in one of channels
+             */
+            boolean channelIncreased = false;
+            double lastAmplitude = 0;
+
+
             SoundMeter soundMeter = new SoundMeter();
             soundMeter.start();
             while (shouldContinue()) {
                 buffer = soundMeter.getBuffer();
-                amplitude = soundMeter.getAmplitude(buffer);
+                peakHarmonic = soundMeter.getPeakHarmonic(buffer);
+
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         mWaveformView.updateAudioData(buffer);
-                        tv.setText(String.valueOf(amplitude));
+                        tv.setText(String.format("%10d %4d", peakHarmonic.second, Constants.getAMPLITUDE_R() - Constants.getAMPLITUDE_L()));
                     }
                 });
+
+                Log.d(TAG, peakHarmonic.first.toString());
+                if (SoundMeter.isSignal(peakHarmonic)) {
+                    Log.d(TAG, "signal");
+                    wasInterference = false;
+                    if (volumeShouldChange) {
+                        Log.d(TAG, "volume should change");
+                        if (peakHarmonic.second > lastAmplitude) {
+                            Log.d(TAG, "amplitude increasing");
+                            // we doing something wrong. Stop doing it and do something else
+                            if (channelIncreased) {
+                                decreaseAmplitude();
+                                Log.d(TAG, "down right channel");
+                            } else {
+                                Log.d(TAG, "up right channel");
+                                increseAmplitude();
+                            }
+                            channelIncreased = !channelIncreased;
+                        } else {
+                            Log.d(TAG, "amplitude falling");
+                            // we doing it all right! keep doing it!
+                            if (channelIncreased) {
+                                Log.d(TAG, "up right channel");
+                                increseAmplitude();
+                            } else {
+                                Log.d(TAG, "down right channel");
+                                decreaseAmplitude();
+                            }
+                        }
+                        Log.d(TAG, "sending synchro");
+                        setSendSynchro(true);
+                        lastAmplitude = peakHarmonic.second;
+                    }
+                    volumeShouldChange = false;
+                } else if (SoundMeter.isSynchro(peakHarmonic)) {
+                    Log.d(TAG, "received synchro");
+                    wasInterference = false;
+                    volumeShouldChange = true;
+                } else {
+                    Log.d(TAG, "received interference");
+                    if (wasInterference) {
+                        continue;
+                    } else {
+                        Log.d(TAG, "Received 2nd interference in a row");
+                        wasInterference = true;
+                        continue;
+                    }
+                }
             }
             soundMeter.stop();
+        }
+
+        private void increseAmplitude() {
+            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() + 25);
+        }
+
+        private void decreaseAmplitude() {
+            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() - 25);
         }
 
         private synchronized boolean shouldContinue() {
@@ -139,22 +231,37 @@ public class MyActivity extends Activity {
 
             double phl = 0.0;
             double phr = 0.0;
+            double phs = 0.0;
 
             // start audio
             audioTrack.play();
 
             // synthesis loop
             while (shouldContinue()) {
-                for (int i = 0; i < buffsize; i++) {
-                    if (i % 2 == 0) {
-                        samples[i] = (short) (Constants.AMPLITUDE * Math.sin(phl));
-                        phl += Constants.TWO_PI * Constants.FREQUENCY / Constants.SAMPLING_RATE;
-                    } else {
-                        samples[i] = (short) (-Constants.AMPLITUDE * Math.sin(phr));
-                        phr += Constants.TWO_PI * Constants.FREQUENCY / Constants.SAMPLING_RATE;
+                if (shouldSendSynchro()) {
+                    for (int time = 0; time < 2; time++) {
+                        for (int i = 0; i < buffsize; i++) {
+                            if (i % 2 == 0) {
+                                samples[i] = (short) (Constants.AMPLITUDE_SYNCHRO * Math.sin(phs));
+                                samples[i + 1] = (short) (Constants.AMPLITUDE_SYNCHRO * Math.sin(phs));
+                                phs += Constants.TWO_PI * Constants.SYNCHRO_FREQUENCY / Constants.SAMPLING_RATE;
+                            }
+                        }
+                        audioTrack.write(samples, 0, buffsize);
                     }
+                    setSendSynchro(false);
+                } else {
+                    for (int i = 0; i < buffsize; i++) {
+                        if (i % 2 == 0) {
+                            samples[i] = (short) (Constants.getAMPLITUDE_L() * Math.sin(phl));
+                            phl += Constants.TWO_PI * Constants.SIGNAL_FREQUENCY / Constants.SAMPLING_RATE;
+                        } else {
+                            samples[i] = (short) (-Constants.getAMPLITUDE_R() * Math.sin(phr));
+                            phr += Constants.TWO_PI * Constants.SIGNAL_FREQUENCY / Constants.SAMPLING_RATE;
+                        }
+                    }
+                    audioTrack.write(samples, 0, buffsize);
                 }
-                audioTrack.write(samples, 0, buffsize);
             }
             audioTrack.stop();
             audioTrack.release();
