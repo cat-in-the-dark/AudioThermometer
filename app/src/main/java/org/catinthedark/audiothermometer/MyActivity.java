@@ -92,6 +92,12 @@ public class MyActivity extends Activity {
         return super.onOptionsItemSelected(item);
     }
 
+    private float realTemp(int lCh, int rCh) {
+        float frch = (float)rCh;
+        float flch = (float)lCh;
+        return 1 / (float)((Math.log(10000 * flch / frch) - Math.log((float)10000)) / (float)4300 + 1 / (float)(25 + 273)) - 273;
+    }
+
     private class RecordingThread extends Thread {
         private boolean running = true;
 
@@ -131,7 +137,7 @@ public class MyActivity extends Activity {
                     @Override
                     public void run() {
                         mWaveformView.updateAudioData(buffer);
-                        tv.setText(String.format("%10d %4d", peakHarmonic.second, Constants.getAMPLITUDE_R() - Constants.getAMPLITUDE_L()));
+                        tv.setText(String.format("%4f", realTemp(Constants.getAMPLITUDE_L(), Constants.getAMPLITUDE_R())));
                     }
                 });
 
@@ -187,11 +193,11 @@ public class MyActivity extends Activity {
         }
 
         private void increseAmplitude() {
-            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() + 25);
+            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() + 10);
         }
 
         private void decreaseAmplitude() {
-            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() - 25);
+            Constants.setAMPLITUDE_R(Constants.getAMPLITUDE_R() - 10);
         }
 
         private synchronized boolean shouldContinue() {
