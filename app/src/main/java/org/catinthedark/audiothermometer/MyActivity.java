@@ -2,6 +2,7 @@ package org.catinthedark.audiothermometer;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.media.AudioFormat;
 import android.media.AudioManager;
 import android.media.AudioTrack;
@@ -86,10 +87,15 @@ public class MyActivity extends Activity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
-        if (id == R.id.action_settings) {
-            return true;
+        if (id == R.id.action_help) {
+            showHelp();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void showHelp() {
+        Intent helpIntent = new Intent(this, HelpActivity.class);
+        startActivity(helpIntent);
     }
 
     private float realTemp(int lCh, int rCh) {
