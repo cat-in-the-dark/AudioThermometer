@@ -133,13 +133,23 @@ public class MyActivity extends Activity {
                 buffer = soundMeter.getBuffer();
                 peakHarmonic = soundMeter.getPeakHarmonic(buffer);
 
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        mWaveformView.updateAudioData(buffer);
-                        tv.setText(String.format("%4f", realTemp(Constants.getAMPLITUDE_L(), Constants.getAMPLITUDE_R())));
-                    }
-                });
+                if (!wasInterference) {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mWaveformView.updateAudioData(buffer);
+                            tv.setText(String.format("%.2f", realTemp(Constants.getAMPLITUDE_L(), Constants.getAMPLITUDE_R())));
+                        }
+                    });
+                } else {
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            mWaveformView.updateAudioData(buffer);
+                            tv.setText("Interference");
+                        }
+                    });
+                }
 
                 Log.d(TAG, peakHarmonic.first.toString());
                 if (SoundMeter.isSignal(peakHarmonic)) {
